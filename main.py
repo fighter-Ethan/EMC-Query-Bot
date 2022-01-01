@@ -1,4 +1,4 @@
-#Imports
+  #Imports
 import discord
 import discord.utils
 from discord.ext import commands
@@ -10,39 +10,45 @@ import json
 import requests
 import random
 import datetime
+import pytz
+import dateutil.tz
+
 #Commands Handler- DO NOT TOUCH
 client = commands.Bot(command_prefix=">")
 member = discord.Member
-
 
 #Matrixes
 playingwith = ["with Aikar | >accinfo" , "with MoreMoople | >accinfo" , "with Krysyy | >accinfo" , "with Chickeneer | >accinfo"]
 #Removes the default help command.
 client.remove_command('help')
 
-#Starts the bot, and adds a status to it
 @client.event
 async def on_ready():
   await client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name= random.choice(playingwith)))
   print('Bot is ready child')
 
-#WORK IN PROGRESS COMMAND
+
 @client.command()
-async def setvotetimer(ctx , username1 = "Null"):
-  await ctx.send("Would you like a twelve hour reminder or a twenty-four hour reminder?")
-  remindtime = await client.wait_for("message")
-  if remindtime.content == "12":
-    await asyncio.sleep(43200)
-    await ctx.send(f"{ctx.author.mention}, it's time to vote!")
-  elif remindtime.content == "24":
-    await asyncio.sleep(86400)
-    await ctx.send(f"{ctx.author.mention}, it's time to vote!")
+async def help(ctx):
+  embed = discord.Embed(title = "**Help Menu**" , description = "*EMC Discord Bot*" , color = discord.Color.blue())
+  embed.add_field(name = "**accinfo [playername]**" , value = "Gives general information about the player." , inline = False)
+  embed.add_field(name = "**online [playername]**" , value = "Displays the online status of the named player." , inline = False)
+  embed.add_field(name = "**banstatus [playername]**" , value = "Checks whether the named player is banned, and if so, who banned them." , inline = False)
+  embed.add_field(name = "**vote [playername]**" , value = "Creates a link to TopG to vote for the specified player." , inline = False)
+  embed.add_field(name = "**invite**" , value = "Sends a link for the user to add the bot to their server!" , inline = False)
+  embed.add_field(name = "**sourcecode**" , value = "Sends a link to the Github Page for this bot!" , inline = False)
+  embed.set_footer(text = "Made by fighter_Ethan!")
+  await ctx.send(embed=embed)
   
   
-#Account Info- AKA the main command  
+  
 @client.command()
 async def accinfo(ctx , * , username1 = "Null"):
   url = "https://empireminecraft.com/api/pinfo.php?name=" + username1
+  timezone = pytz.timezone('America/New_York')  # Setting timezone
+  utc_now = pytz.utc.localize(datetime.datetime.utcnow()) # UTC
+  tz_now = utc_now.astimezone(timezone)
+  tzinfo = pytz.timezone("America/New_York")
   status = requests.get(url)
   data = status.text
   parse_json = json.loads(data)
@@ -98,18 +104,17 @@ async def accinfo(ctx , * , username1 = "Null"):
   embed.add_field(name = "\n\u200b" , value = "\n\u200b" , inline = True)
   await ctx.send(embed=embed)
 
-  
-#Tells you what server the player is currently on
 @client.command()
-async def online(ctx , username1 = "Null"):
+async def online(ctx , username1 = "Nulled"):
   url = "https://empireminecraft.com/api/pinfo.php?name=" + username1
   status = requests.get(url)
   data = status.text
   parse_json = json.loads(data)
   current = parse_json["server_id"]
+  lastseen = parse_json["last_seen"]
   embed = discord.Embed(title = "**" + username1 + "**" , description = "Online Status" , color = discord.Color.blue())
-  if current == "null":
-    embed.add_field(name = "**Currently Playing**" , value = "Offline" , inline = True)
+  if username1 == "Nulled":
+    await ctx.send("You forgot to put i")
   elif current == "1": 
     embed.add_field(name = "**Currently Playing**" , value = "SMP1" , inline = True)
   elif current == "2":
@@ -132,14 +137,49 @@ async def online(ctx , username1 = "Null"):
     embed.add_field(name = "**Currently Playing**" , value = "SMP9" , inline = True)
   elif current == "200":
     embed.add_field(name = "**Currently Playing**" , value = "Games Server" , inline = True)
+  else:
+    embed.add_field(name = "**Currently Playing**" , value = "Offline" , inline = True)
+    embed.add_field(name = "**Last Seen**" , value =
+ datetime.datetime.fromtimestamp(int(lastseen)).strftime('%Y-%m-%d at %H:%M:%S %z %Z'), inline = True)
   await ctx.send(embed=embed)
 
-#Invites bot to your server. Link is permanently valid.
+@client.command()
+async def banstatus(ctx , username1 = "Null"):
+  url = "https://empireminecraft.com/api/pinfo.php?name=" + username1
+  status = requests.get(url)
+  data = status.text
+  parse_json = json.loads(data)
+  currently = parse_json["banned"]
+  status2 = requests.get(url)
+  data2 = status2.text
+  parse_json2 = json.loads(data2)
+  so = parse_json2["banned_by"]
+  embed = discord.Embed(title = "**" + username1 + "**", description = "Ban Status" , color = discord.Color.red())
+  if currently == "0":
+    embed.add_field(name = "**Is Banned**" , value = "No" , inline = True)
+  elif currently == "1":
+    embed.add_field(name = "**Is Bannned**" , value = "Yes" , inline = True)
+    embed.add_field(name = "**Banned By**" , value = so , inline = True)
+  await ctx.send(embed=embed)
+
+@client.command()
+async def vote(ctx , * , username = "Null"):
+  if username == "Null":
+    await ctx.send(f"{ctx.author.mention}, please enter a valid username!")
+  else:
+    await ctx.send("Here is your voting link:")
+    await asyncio.sleep(1)
+    await ctx.send("https://topg.org/minecraft-servers/server-355353-" + username)
+  
+
 @client.command()
 async def invite(ctx):
   await ctx.send("https://discord.com/api/oauth2/authorize?client_id=833450592125845574&permissions=382976&scope=bot")
 
- #This works in conjuction with webserver.py to keep the bot running.
-  keep_alive()
+@client.command()
+async def sourcecode(ctx):
+  await ctx.send("https://github.com/fighter-Ethan/EMC-Query-Bot")
+
+keep_alive()
 TOKEN = os.environ.get("DISCORD_BOT_SECRET")
 client.run(TOKEN)
